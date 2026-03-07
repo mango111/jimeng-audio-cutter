@@ -37,6 +37,6 @@ export async function cutAudio(
   ]);
   
   const data = await ffmpeg.readFile(outputName);
-  // FFmpeg returns Uint8Array
-  return new Blob([data as Uint8Array], { type: 'audio/mpeg' });
+  // @ts-ignore - FFmpeg type compatibility issue
+  return new Blob([data], { type: 'audio/mpeg' });
 }
