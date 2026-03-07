@@ -37,5 +37,5 @@ export async function cutAudio(
   ]);
   
   const data = await ffmpeg.readFile(outputName);
-  return new Blob([data], { type: 'audio/mpeg' });
+  return new Blob([data.buffer], { type: 'audio/mpeg' });
 }
