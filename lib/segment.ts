@@ -1,39 +1,52 @@
 // 智能分段算法
-import { LyricLine } from './lyrics';
+import { LyricLine } from './asr';
 
 export interface Segment {
+  id: string;
   start: number;
   end: number;
   lyrics: string[];
+  duration: number;
 }
 
 export function smartSegment(
-  lyrics: LyricLine[],
-  audioDuration: number,
+  selectedLyrics: LyricLine[],
   maxDuration = 36
 ): Segment[] {
   const segments: Segment[] = [];
-  let currentStart = 0;
-  let currentLyrics: string[] = [];
+  let current: LyricLine[] = [];
+  let startTime = 0;
   
-  for (let i = 0; i < lyrics.length; i++) {
-    const current = lyrics[i];
-    const next = lyrics[i + 1];
-    const duration = current.time - currentStart;
+  for (const lyric of selectedLyrics) {
+    const duration = lyric.end - startTime;
     
-    currentLyrics.push(current.text);
-    
-    // 达到最大时长或最后一句
-    if (duration >= maxDuration || !next) {
-      const end = next ? next.time : audioDuration;
+    if (duration > maxDuration && current.length > 0) {
+      // 超过最大时长，创建新段
+      const lastLyric = current[current.length - 1];
       segments.push({
-        start: currentStart,
-        end,
-        lyrics: [...currentLyrics]
+        id: `seg-${segments.length}`,
+        start: startTime,
+        end: lastLyric.end,
+        lyrics: current.map(l => l.text),
+        duration: lastLyric.end - startTime
       });
-      currentStart = end;
-      currentLyrics = [];
+      current = [lyric];
+      startTime = lyric.start;
+    } else {
+      current.push(lyric);
     }
+  }
+  
+  // 最后一段
+  if (current.length > 0) {
+    const lastLyric = current[current.length - 1];
+    segments.push({
+      id: `seg-${segments.length}`,
+      start: startTime,
+      end: lastLyric.end,
+      lyrics: current.map(l => l.text),
+      duration: lastLyric.end - startTime
+    });
   }
   
   return segments;

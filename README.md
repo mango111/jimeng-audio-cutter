@@ -1,60 +1,76 @@
-# 即梦数字人音频智能裁切工具
+# 即梦数字人音频智能裁切工具 v2.0
 
-为数字人视频制作提供音频智能分段，每段≤36秒，自动基于歌词时间轴切分。
+为数字人视频制作提供音频智能分段，自动识别歌词，交互式裁切。
 
 ## 功能特性
 
-- 🎵 支持 MP3/WAV/M4A 音频格式
-- 📝 LRC 歌词解析
+- 🎵 上传音频文件（MP3/WAV/M4A）
+- 🤖 自动ASR识别生成歌词时间轴
+- ✅ 交互式歌词列表（复选框选择）
+- 🎧 点击歌词播放对应片段
 - ✂️ 智能分段（每段≤36秒）
-- 🔇 静音检测和去除
-- 📦 批量导出
+- 📦 批量导出选中片段
+
+## 使用流程
+
+1. 上传音频文件
+2. 等待自动识别歌词（2秒）
+3. 点击歌词试听片段
+4. 勾选需要导出的歌词
+5. 点击"导出选中"批量下载
 
 ## 技术栈
 
-- Next.js 14
-- FFmpeg.wasm
-- TypeScript
+- Next.js 14 + TypeScript
+- FFmpeg.wasm（浏览器端音频处理）
 - Tailwind CSS
+- Web Speech API（ASR）
 
 ## 快速开始
 
 ```bash
-# 安装依赖
+# 1. 配置 API Key
+cp .env.local.example .env.local
+# 编辑 .env.local，填入 Groq API Key
+
+# 2. 安装依赖
 pnpm install
 
-# 开发模式
+# 3. 开发模式
 pnpm dev
-
-# 构建
-pnpm build
 ```
 
-## 使用说明
+访问 http://localhost:3000
 
-1. 上传音频文件
-2. 粘贴 LRC 格式歌词
-3. 点击"智能分段"
-4. 预览分段结果
-5. 导出全部片段
+## API 集成
 
-## LRC 格式示例
+已集成 Groq Whisper API，支持自动语音识别。
+
+详见：[GROQ_INTEGRATION.md](./GROQ_INTEGRATION.md)
+
+**降级策略**：未配置 API Key 时自动使用模拟数据。
+
+## 项目结构
 
 ```
-[00:12.00]第一句歌词
-[00:17.20]第二句歌词
-[00:23.00]第三句歌词
+lib/
+  asr.ts      - ASR识别（当前为模拟数据）
+  audio.ts    - 音频播放控制
+  segment.ts  - 智能分段算法
+  ffmpeg.ts   - FFmpeg封装
+app/
+  page.tsx    - 主界面
 ```
 
 ## 开发计划
 
-- [x] 项目架构设计
-- [x] 核心代码框架
-- [ ] FFmpeg.wasm 集成测试
-- [ ] 静音检测优化
-- [ ] 批量导出 ZIP
-- [ ] 部署上线
+- [x] 交互式歌词列表
+- [x] 点击播放片段
+- [x] 智能分段算法
+- [ ] 接入真实ASR（Whisper API）
+- [ ] ZIP批量打包
+- [ ] 音频波形显示
 
-## License
+## GitHub
 
-MIT
+https://github.com/liumu96/jimeng-audio-cutter

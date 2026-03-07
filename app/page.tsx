@@ -1,32 +1,53 @@
 'use client';
 
 import { useState } from 'react';
-import { parseLRC } from '@/lib/lyrics';
+import { transcribeAudio, LyricLine } from '@/lib/asr';
+import { AudioController } from '@/lib/audio';
 import { smartSegment } from '@/lib/segment';
 import { cutAudio } from '@/lib/ffmpeg';
 
 export default function Home() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
-  const [lyrics, setLyrics] = useState('');
-  const [segments, setSegments] = useState<any[]>([]);
-  const [processing, setProcessing] = useState(false);
+  const [lyrics, setLyrics] = useState<LyricLine[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [playing, setPlaying] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [audioCtrl, setAudioCtrl] = useState<AudioController | null>(null);
 
-  const handleProcess = async () => {
-    if (!audioFile) return;
+  const handleUpload = async (file: File) => {
+    setAudioFile(file);
+    setLoading(true);
     
-    setProcessing(true);
-    const lyricLines = parseLRC(lyrics);
-    const audio = new Audio(URL.createObjectURL(audioFile));
+    const ctrl = new AudioController(file);
+    setAudioCtrl(ctrl);
     
-    audio.onloadedmetadata = () => {
-      const segs = smartSegment(lyricLines, audio.duration);
-      setSegments(segs);
-      setProcessing(false);
-    };
+    const result = await transcribeAudio(file);
+    setLyrics(result);
+    setLoading(false);
+  };
+
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selected);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelected(newSelected);
+  };
+
+  const playLyric = (lyric: LyricLine) => {
+    if (!audioCtrl) return;
+    setPlaying(lyric.id);
+    audioCtrl.playSegment(lyric.start, lyric.end);
+    setTimeout(() => setPlaying(null), (lyric.end - lyric.start) * 1000);
   };
 
   const handleExport = async () => {
     if (!audioFile) return;
+    
+    const selectedLyrics = lyrics.filter(l => selected.has(l.id));
+    const segments = smartSegment(selectedLyrics);
     
     for (let i = 0; i < segments.length; i++) {
       const seg = segments[i];
@@ -45,55 +66,54 @@ export default function Home() {
       
       <div className="space-y-6">
         <div>
-          <label className="block mb-2">上传音频</label>
           <input
             type="file"
             accept="audio/*"
-            onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
+            onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])}
             className="border p-2 rounded w-full"
           />
         </div>
 
-        <div>
-          <label className="block mb-2">歌词 (LRC格式)</label>
-          <textarea
-            value={lyrics}
-            onChange={(e) => setLyrics(e.target.value)}
-            className="border p-2 rounded w-full h-40"
-            placeholder="[00:12.00]第一句歌词"
-          />
-        </div>
+        {loading && <div className="text-center">识别中...</div>}
 
-        <button
-          onClick={handleProcess}
-          disabled={!audioFile || !lyrics || processing}
-          className="bg-blue-500 text-white px-6 py-2 rounded disabled:opacity-50"
-        >
-          {processing ? '处理中...' : '智能分段'}
-        </button>
-
-        {segments.length > 0 && (
+        {lyrics.length > 0 && (
           <div>
-            <h2 className="text-xl font-bold mb-4">分段预览 ({segments.length}段)</h2>
+            <div className="flex justify-between mb-4">
+              <h2 className="text-xl font-bold">歌词列表</h2>
+              <button
+                onClick={handleExport}
+                disabled={selected.size === 0}
+                className="bg-green-500 text-white px-4 py-2 rounded disabled:opacity-50"
+              >
+                导出选中 ({selected.size})
+              </button>
+            </div>
+            
             <div className="space-y-2">
-              {segments.map((seg, i) => (
-                <div key={i} className="border p-3 rounded">
-                  <div className="font-bold">段落 {i + 1}</div>
-                  <div className="text-sm text-gray-600">
-                    {seg.start.toFixed(1)}s - {seg.end.toFixed(1)}s 
-                    (时长: {(seg.end - seg.start).toFixed(1)}s)
+              {lyrics.map(lyric => (
+                <div
+                  key={lyric.id}
+                  className={`border p-3 rounded flex items-center gap-3 cursor-pointer ${
+                    playing === lyric.id ? 'bg-blue-100' : ''
+                  }`}
+                  onClick={() => playLyric(lyric)}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected.has(lyric.id)}
+                    onChange={() => toggleSelect(lyric.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-5 h-5"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium">{lyric.text}</div>
+                    <div className="text-sm text-gray-500">
+                      {lyric.start.toFixed(1)}s - {lyric.end.toFixed(1)}s
+                    </div>
                   </div>
-                  <div className="text-sm mt-1">{seg.lyrics.join(' / ')}</div>
                 </div>
               ))}
             </div>
-            
-            <button
-              onClick={handleExport}
-              className="bg-green-500 text-white px-6 py-2 rounded mt-4"
-            >
-              导出全部
-            </button>
           </div>
         )}
       </div>
