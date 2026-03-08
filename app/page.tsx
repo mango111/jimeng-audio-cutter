@@ -47,16 +47,25 @@ export default function Home() {
     const ctrl = new AudioController(file);
     setAudioCtrl(ctrl);
 
-    // 模拟识别进度
+    // 启动进度模拟
     const progressInterval = setInterval(() => {
-      setRecognitionProgress(prev => Math.min(prev + 5, 95));
-    }, 300);
+      setRecognitionProgress(prev => Math.min(prev + 3, 90));
+    }, 500);
 
-    const result = await transcribeAudio(file);
-    
-    clearInterval(progressInterval);
-    setRecognitionProgress(100);
-    setLyrics(result);
+    try {
+      const result = await transcribeAudio(file);
+      clearInterval(progressInterval);
+      setRecognitionProgress(100);
+      
+      if (result.length > 0) {
+        setLyrics(result);
+      } else {
+        alert('识别失败，请重试');
+      }
+    } catch (error) {
+      clearInterval(progressInterval);
+      alert('识别出错：' + error);
+    }
     
     setTimeout(() => setIsRecognizing(false), 500);
   };
