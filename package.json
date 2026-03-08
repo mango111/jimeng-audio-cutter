@@ -12,7 +12,8 @@
     "react": "^18",
     "react-dom": "^18",
     "@ffmpeg/ffmpeg": "^0.12.10",
-    "@ffmpeg/util": "^0.12.1"
+    "@ffmpeg/util": "^0.12.1",
+    "lucide-react": "^0.263.1"
   },
   "devDependencies": {
     "typescript": "^5",
