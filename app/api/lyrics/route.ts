@@ -4,31 +4,34 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const song = searchParams.get('song');
   const artist = searchParams.get('artist');
+  const forceAI = searchParams.get('forceAI') === 'true';
 
   if (!song) {
     return NextResponse.json({ error: 'Song name required' }, { status: 400 });
   }
 
   try {
-    // 1. 先尝试网易云音乐 API
-    const searchQuery = artist ? `${song} ${artist}` : song;
-    const searchRes = await fetch(`https://netease-cloud-music-api-liard-six.vercel.app/search?keywords=${encodeURIComponent(searchQuery)}`);
-    
-    if (searchRes.ok) {
-      const searchData = await searchRes.json();
-      if (searchData.result?.songs?.[0]) {
-        const songId = searchData.result.songs[0].id;
-        
-        // 获取歌词
-        const lyricsRes = await fetch(`https://netease-cloud-music-api-liard-six.vercel.app/lyric?id=${songId}`);
-        if (lyricsRes.ok) {
-          const lyricsData = await lyricsRes.json();
-          return NextResponse.json({
-            source: 'netease',
-            lyrics: lyricsData.lrc?.lyric || '',
-            song: searchData.result.songs[0].name,
-            artist: searchData.result.songs[0].artists[0]?.name
-          });
+    // 1. 如果没有强制 AI，先尝试网易云音乐 API
+    if (!forceAI) {
+      const searchQuery = artist ? `${song} ${artist}` : song;
+      const searchRes = await fetch(`https://netease-cloud-music-api-liard-six.vercel.app/search?keywords=${encodeURIComponent(searchQuery)}`);
+      
+      if (searchRes.ok) {
+        const searchData = await searchRes.json();
+        if (searchData.result?.songs?.[0]) {
+          const songId = searchData.result.songs[0].id;
+          
+          // 获取歌词
+          const lyricsRes = await fetch(`https://netease-cloud-music-api-liard-six.vercel.app/lyric?id=${songId}`);
+          if (lyricsRes.ok) {
+            const lyricsData = await lyricsRes.json();
+            return NextResponse.json({
+              source: 'netease',
+              lyrics: lyricsData.lrc?.lyric || '',
+              song: searchData.result.songs[0].name,
+              artist: searchData.result.songs[0].artists[0]?.name
+            });
+          }
         }
       }
     }
