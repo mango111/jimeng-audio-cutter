@@ -60,11 +60,12 @@ export default function Home() {
       if (result.length > 0) {
         setLyrics(result);
       } else {
-        alert('识别失败，请重试');
+        alert('识别失败：未返回任何结果');
       }
     } catch (error) {
       clearInterval(progressInterval);
-      alert('识别出错：' + error);
+      const errorMsg = error instanceof Error ? error.message : '未知错误';
+      alert('识别失败：' + errorMsg);
     }
     
     setTimeout(() => setIsRecognizing(false), 500);

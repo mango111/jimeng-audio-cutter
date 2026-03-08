@@ -16,14 +16,16 @@ export async function transcribeAudio(audioFile: File): Promise<LyricLine[]> {
       body: formData,
     });
     
+    const data = await response.json();
+    
     if (!response.ok) {
-      throw new Error(`API 错误: ${response.status}`);
+      console.error('API 错误:', data);
+      throw new Error(data.message || data.error || 'API 调用失败');
     }
     
-    const data = await response.json();
     return data.segments || [];
   } catch (error) {
     console.error('ASR 识别失败:', error);
-    return [];
+    throw error;
   }
 }
